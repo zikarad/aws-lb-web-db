@@ -94,3 +94,24 @@ resource "aws_nat_gateway" "ngw-priv2" {
     Name = "NATgw2"
   }
 }
+
+/* ROUTE TABLEs */
+
+resource "aws_route_table" "rt-priv1" {
+	vpc_id = "${aws_vpc.vpc-main.id}"
+
+	route {
+    cidr_block			= "10.0.129.0/24"
+    nat_gateway_id	= "${aws_nat_gateway.ngw-priv1.id}"
+  }
+
+}
+
+resource "aws_route_table" "rt-priv2" {
+	vpc_id = "${aws_vpc.vpc-main.id}"
+
+	route {
+		cidr_block			= "10.0.130.0/24"
+		nat_gateway_id	= "${aws_nat_gateway.ngw-priv2.id}"
+	}
+}
