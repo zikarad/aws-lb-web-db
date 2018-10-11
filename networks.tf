@@ -81,19 +81,17 @@ resource "aws_vpn_gateway" "vpngw-main" {
   vpc_id = "${aws_vpc.vpc-main.id}"
 
   tags {
-    Name = "main"
+    Name = "vpngw-main"
   }
 }
 
 resource "aws_eip" "eip-ngw1" {
   vpc = true
-
   depends_on = ["aws_internet_gateway.igw-main"]
 }
 
 resource "aws_eip" "eip-ngw2" {
   vpc = true
-
   depends_on = ["aws_internet_gateway.igw-main"]
 }
 

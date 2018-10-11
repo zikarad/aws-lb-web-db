@@ -8,9 +8,12 @@ resource "aws_key_pair" "sshkey-gen" {
 }
 
 resource "aws_security_group" "sg-jumphost" {
+	name   = "ssh access"
+	description = "Allow ssh access from any"
   vpc_id = "${aws_vpc.vpc-main.id}"
 
   ingress {
+		description = "SSH from any"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
@@ -33,6 +36,42 @@ resource "aws_security_group" "sg-jumphost" {
   }
 }
 
+resource "aws_security_group" "sg-web" {
+	name = "Web access"
+	description = "Allow HTTP and HTTP access from any"
+  vpc_id = "${aws_vpc.vpc-main.id}"
+
+  ingress {
+		description = "HTTP from any"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+	ingress {
+		description = "HTTPS from any"
+		from_port   = 443
+		to_port     = 443
+		protocol    = "tcp"
+		cidr_blocks = ["0.0.0.0/0"]
+	}
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags {
+    Name = "sg-web-http"
+  }
+}
 
 resource "aws_instance" "vm-jh1" {
 	ami						= "${var.ami}"
