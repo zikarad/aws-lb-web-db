@@ -42,7 +42,7 @@ resource "aws_security_group" "sg-web" {
   vpc_id = "${aws_vpc.vpc-main.id}"
 
   ingress {
-		description = "HTTP from any"
+	description = "HTTP from any"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
@@ -71,6 +71,28 @@ resource "aws_security_group" "sg-web" {
   tags {
     Name = "sg-web-http"
   }
+}
+
+resource "aws_security_group" "sg-elb-web" {
+	name = "web-lb"
+
+	ingress {
+		from_port   = 80
+		to_port     = 80
+		protocol    = "tcp"
+		cidr_blocks = ["0.0.0.0/0"]
+	}
+
+	egress {
+		from_port   = 0
+		to_port     = 0
+		protocol    = "-1"
+		cidr_blocks = ["0.0.0.0/0"]
+	}
+
+	tags {
+		Name = "sg-web_elb-http"
+	}
 }
 
 resource "aws_instance" "vm-jh1" {
@@ -112,7 +134,32 @@ output "public_ip-jh2" {
 	value = "${aws_instance.vm-jh2.public_ip}"
 }
 
-# web asg
+output "dns_name-web_elb" {
+	value = "${aws_elb.web-elb.dns_name}"
+}
+
+# web asg/lb
+resource "aws_elb" "web-elb" {
+	name = "webha"
+	availability_zones = [""]
+	security_groups = ["aws_security_group.sg-elb-web.id"]
+
+	listener {
+		lb_port           = 80
+		lb_protocol       = "http"
+		instance_port     = "${var.web_server_port}"
+		instance_protocol = "tcp"
+	}
+
+	health_check {
+		healthy_threshold   = 2
+		unhealthy_threshold = 2
+		timeout   = 3
+		interval  = 30
+		target = "HTTP:${var.web_server_port}/index.html"
+	}
+}
+
 resource "aws_launch_configuration" "lc-web" {
   name          = "web"
   image_id      = "${var.ami}"
@@ -124,16 +171,17 @@ resource "aws_launch_configuration" "lc-web" {
 }
 
 resource "aws_autoscaling_group" "asg-web" {
-  name                 = "web-"
+	name                 = "web-asg"
 	min_size             = 1
 	max_size             = 2
 	health_check_grace_period = 300
 	health_check_type    = "ELB"
 	desired_capacity     = 4
-  force_delete         = true
-  launch_configuration = "${aws_launch_configuration.lc-web.name}"
-	vpc_zone_identifier       = ["${aws_subnet.sn-pub1.id}", "${aws_subnet.sn-pub2.id}"]
+	force_delete         = true
+	launch_configuration = "${aws_launch_configuration.lc-web.name}"
+	vpc_zone_identifier  = ["${aws_subnet.sn-pub1.id}", "${aws_subnet.sn-pub2.id}"]
 
+	load_balancers		 = ["${aws_elb.web-elb.name}"]
 
   lifecycle {
     create_before_destroy = true

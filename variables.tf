@@ -8,11 +8,15 @@ variable "region" {
 }
 
 variable "jh-size" {
-	default = "t2.micro"
+	default = "t3.micro"
 }
 
 variable "web-size" {
 	default = "t3.micro"
+}
+
+variable "web_server_port" {
+	default = 80
 }
 
 variable "sshkey_name" {
