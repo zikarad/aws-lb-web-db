@@ -12,7 +12,7 @@ variable "jh-size" {
 }
 
 variable "web-size" {
-	default = "t2.micro"
+	default = "t3.micro"
 }
 
 variable "sshkey_name" {
