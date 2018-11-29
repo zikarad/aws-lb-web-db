@@ -1,6 +1,8 @@
 /* --- VPCs */
 resource "aws_vpc" "vpc-main" {
   cidr_block = "10.0.0.0/16"
+  enable_dns_hostnames = true
+  enable_dns_support   = true
 
   tags {
     Name  = "main"
@@ -18,6 +20,11 @@ resource "aws_vpc_endpoint" "endp-dydb" {
   vpc_id       = "${aws_vpc.vpc-main.id}"
   service_name = "com.amazonaws.${var.region}.dynamodb"
 }
+
+#resource "aws_vpc_endpoint_route_table_association" "vpcea-s3" {
+#  vpc_endpoint_id = "${aws_vpc_endpoint.endp-s3.id}"
+#  route_table_id  = "${}"
+#}
 
 /* NETWORKS */
 resource "aws_subnet" "sn-pub1" {

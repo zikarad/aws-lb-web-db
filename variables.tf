@@ -26,3 +26,4 @@ variable "sshkey_name" {
 variable "sshkey_path" {}
 variable "aws_access_key" {}
 variable "aws_secret_key" {}
+variable "route53zone" {}

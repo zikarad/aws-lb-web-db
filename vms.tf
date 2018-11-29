@@ -1,5 +1,10 @@
-/* VIRTUAL MACHINEs */
+/* DEFINE DATA */
+data "aws_route53_zone" "r53zone" {
+  name         = "${var.route53zone}"
+  private_zone = false
+}
 
+/* VIRTUAL MACHINEs */
 # jumphosts
 
 resource "aws_key_pair" "sshkey-gen" {
@@ -27,10 +32,6 @@ resource "aws_security_group" "sg-jumphost" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  lifecycle {
-    create_before_destroy = true
-  }
-
   tags {
     Name = "sg-jumphost"
   }
@@ -42,7 +43,15 @@ resource "aws_security_group" "sg-web" {
   vpc_id = "${aws_vpc.vpc-main.id}"
 
   ingress {
-	description = "HTTP from any"
+		description = "SSH from jh"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/16"]
+  }
+
+  ingress {
+		description = "HTTP from any"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
@@ -64,17 +73,15 @@ resource "aws_security_group" "sg-web" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  lifecycle {
-    create_before_destroy = true
-  }
-
   tags {
     Name = "sg-web-http"
   }
 }
 
 resource "aws_security_group" "sg-elb-web" {
-	name = "web-lb"
+	name        = "web-lb"
+	description = "Allows http through"
+	vpc_id      = "${aws_vpc.vpc-main.id}"
 
 	ingress {
 		from_port   = 80
@@ -125,6 +132,23 @@ resource "aws_instance" "vm-jh2" {
 
 }
 
+/* DNS mangling */
+resource "aws_route53_record" "r53a-jh1" {
+	zone_id = "${data.aws_route53_zone.r53zone.zone_id}"
+  name    = "jh1"
+  type    = "A"
+	ttl     = 300
+	records = ["${aws_instance.vm-jh1.public_ip}"]
+}
+
+resource "aws_route53_record" "r53a-jh2" {
+	zone_id = "${data.aws_route53_zone.r53zone.zone_id}"
+  name    = "jh2"
+  type    = "A"
+	ttl     = 300
+	records = ["${aws_instance.vm-jh2.public_ip}"]
+}
+
 /* OUTPUT - IPs */
 output "public_ip-jh1" {
 	value = "${aws_instance.vm-jh1.public_ip}"
@@ -141,14 +165,14 @@ output "dns_name-web_elb" {
 # web asg/lb
 resource "aws_elb" "web-elb" {
 	name = "webha"
-	availability_zones = [""]
-	security_groups = ["aws_security_group.sg-elb-web.id"]
+	subnets         = ["${aws_subnet.sn-pub1.id}", "${aws_subnet.sn-pub2.id}"]
+	security_groups = ["${aws_security_group.sg-elb-web.id}"]
 
 	listener {
 		lb_port           = 80
 		lb_protocol       = "http"
 		instance_port     = "${var.web_server_port}"
-		instance_protocol = "tcp"
+		instance_protocol = "http"
 	}
 
 	health_check {
@@ -164,26 +188,21 @@ resource "aws_launch_configuration" "lc-web" {
   name          = "web"
   image_id      = "${var.ami}"
   instance_type = "${var.web-size}"
-
-  lifecycle {
-    create_before_destroy = true
-  }
+	security_groups = ["${aws_security_group.sg-web.id}"]
+	associate_public_ip_address = true
+	key_name = "${var.sshkey_name}"
 }
 
 resource "aws_autoscaling_group" "asg-web" {
 	name                 = "web-asg"
 	min_size             = 1
-	max_size             = 2
+	max_size             = 4
 	health_check_grace_period = 300
 	health_check_type    = "ELB"
-	desired_capacity     = 4
+	desired_capacity     = 2
 	force_delete         = true
 	launch_configuration = "${aws_launch_configuration.lc-web.name}"
 	vpc_zone_identifier  = ["${aws_subnet.sn-pub1.id}", "${aws_subnet.sn-pub2.id}"]
 
 	load_balancers		 = ["${aws_elb.web-elb.name}"]
-
-  lifecycle {
-    create_before_destroy = true
-  }
 }
