@@ -19,6 +19,10 @@ variable "web_server_port" {
 	default = 80
 }
 
+variable "lb_port" {
+	default = 80
+}
+
 variable "sshkey_name" {
 	default = "azure-test1"
 }
@@ -27,3 +31,4 @@ variable "sshkey_path" {}
 variable "aws_access_key" {}
 variable "aws_secret_key" {}
 variable "route53zone" {}
+variable "myiprange" {}

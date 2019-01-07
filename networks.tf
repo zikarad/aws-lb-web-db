@@ -1,34 +1,60 @@
 /* --- VPCs */
-resource "aws_vpc" "vpc-main" {
+resource "aws_vpc" "vpc-lb-web" {
   cidr_block = "10.0.0.0/16"
   enable_dns_hostnames = true
   enable_dns_support   = true
 
   tags {
-    Name  = "main"
+    Name  = "lb-web"
     stage = "poc"
+    creator = "terraform"
   }
 }
 
 /* ENDPOINTS */
 resource "aws_vpc_endpoint" "endp-s3" {
-  vpc_id       = "${aws_vpc.vpc-main.id}"
+  vpc_id       = "${aws_vpc.vpc-lb-web.id}"
   service_name = "com.amazonaws.${var.region}.s3"
 }
 
 resource "aws_vpc_endpoint" "endp-dydb" {
-  vpc_id       = "${aws_vpc.vpc-main.id}"
+  vpc_id       = "${aws_vpc.vpc-lb-web.id}"
   service_name = "com.amazonaws.${var.region}.dynamodb"
 }
 
-#resource "aws_vpc_endpoint_route_table_association" "vpcea-s3" {
-#  vpc_endpoint_id = "${aws_vpc_endpoint.endp-s3.id}"
-#  route_table_id  = "${}"
-#}
+resource "aws_vpc_endpoint_route_table_association" "vpcea-s3-pub1" {
+  vpc_endpoint_id = "${aws_vpc_endpoint.endp-s3.id}"
+  route_table_id  = "${aws_route_table.rt-pub.id}"
+}
+
+resource "aws_vpc_endpoint_route_table_association" "vpcea-s3-pub2" {
+  vpc_endpoint_id = "${aws_vpc_endpoint.endp-s3.id}"
+  route_table_id  = "${aws_route_table.rt-pub.id}"
+}
+
+resource "aws_vpc_endpoint_route_table_association" "vpcea-s3-priv1" {
+  vpc_endpoint_id = "${aws_vpc_endpoint.endp-s3.id}"
+  route_table_id  = "${aws_route_table.rt-priv1.id}"
+}
+
+resource "aws_vpc_endpoint_route_table_association" "vpcea-s3-priv2" {
+  vpc_endpoint_id = "${aws_vpc_endpoint.endp-s3.id}"
+  route_table_id  = "${aws_route_table.rt-priv2.id}"
+}
+
+resource "aws_vpc_endpoint_route_table_association" "vpcea-dydb-priv1" {
+  vpc_endpoint_id = "${aws_vpc_endpoint.endp-dydb.id}"
+  route_table_id  = "${aws_route_table.rt-priv1.id}"
+}
+
+resource "aws_vpc_endpoint_route_table_association" "vpcea-dydb-priv2" {
+  vpc_endpoint_id = "${aws_vpc_endpoint.endp-dydb.id}"
+  route_table_id  = "${aws_route_table.rt-priv2.id}"
+}
 
 /* NETWORKS */
 resource "aws_subnet" "sn-pub1" {
-  vpc_id = "${aws_vpc.vpc-main.id}"
+  vpc_id = "${aws_vpc.vpc-lb-web.id}"
 
   cidr_block        = "10.0.1.0/24"
   availability_zone = "eu-central-1a"
@@ -40,7 +66,7 @@ resource "aws_subnet" "sn-pub1" {
 }
 
 resource "aws_subnet" "sn-pub2" {
-  vpc_id = "${aws_vpc.vpc-main.id}"
+  vpc_id = "${aws_vpc.vpc-lb-web.id}"
 
   cidr_block        = "10.0.2.0/24"
   availability_zone = "eu-central-1b"
@@ -52,7 +78,7 @@ resource "aws_subnet" "sn-pub2" {
 }
 
 resource "aws_subnet" "sn-priv1" {
-  vpc_id = "${aws_vpc.vpc-main.id}"
+  vpc_id = "${aws_vpc.vpc-lb-web.id}"
 
   cidr_block        = "10.0.129.0/24"
   availability_zone = "eu-central-1a"
@@ -64,7 +90,7 @@ resource "aws_subnet" "sn-priv1" {
 }
 
 resource "aws_subnet" "sn-priv2" {
-  vpc_id = "${aws_vpc.vpc-main.id}"
+  vpc_id = "${aws_vpc.vpc-lb-web.id}"
 
   cidr_block        = "10.0.130.0/24"
   availability_zone = "eu-central-1b"
@@ -77,7 +103,7 @@ resource "aws_subnet" "sn-priv2" {
 
 /* GATEWAYs */
 resource "aws_internet_gateway" "igw-main" {
-  vpc_id = "${aws_vpc.vpc-main.id}"
+  vpc_id = "${aws_vpc.vpc-lb-web.id}"
 
   tags {
     Name = "igw-main"
@@ -85,7 +111,7 @@ resource "aws_internet_gateway" "igw-main" {
 }
 
 resource "aws_vpn_gateway" "vpngw-main" {
-  vpc_id = "${aws_vpc.vpc-main.id}"
+  vpc_id = "${aws_vpc.vpc-lb-web.id}"
 
   tags {
     Name = "vpngw-main"
@@ -122,7 +148,7 @@ resource "aws_nat_gateway" "ngw-priv2" {
 
 /* ROUTE TABLEs */
 resource "aws_route_table" "rt-pub" {
-  vpc_id = "${aws_vpc.vpc-main.id}"
+  vpc_id = "${aws_vpc.vpc-lb-web.id}"
 
   route {
     cidr_block = "0.0.0.0/0"
@@ -131,7 +157,7 @@ resource "aws_route_table" "rt-pub" {
 }
 
 resource "aws_route_table" "rt-priv1" {
-  vpc_id = "${aws_vpc.vpc-main.id}"
+  vpc_id = "${aws_vpc.vpc-lb-web.id}"
 
   route {
     cidr_block     = "0.0.0.0/0"
@@ -140,7 +166,7 @@ resource "aws_route_table" "rt-priv1" {
 }
 
 resource "aws_route_table" "rt-priv2" {
-  vpc_id = "${aws_vpc.vpc-main.id}"
+  vpc_id = "${aws_vpc.vpc-lb-web.id}"
 
   route {
     cidr_block     = "0.0.0.0/0"
@@ -157,4 +183,14 @@ resource "aws_route_table_association" "rta-pub1" {
 resource "aws_route_table_association" "rta-pub2" {
   subnet_id      = "${aws_subnet.sn-pub2.id}"
   route_table_id = "${aws_route_table.rt-pub.id}"
+}
+
+resource "aws_route_table_association" "rta-priv1" {
+  subnet_id      = "${aws_subnet.sn-priv1.id}"
+  route_table_id = "${aws_route_table.rt-priv1.id}"
+}
+
+resource "aws_route_table_association" "rta-priv2" {
+  subnet_id      = "${aws_subnet.sn-priv2.id}"
+  route_table_id = "${aws_route_table.rt-priv2.id}"
 }

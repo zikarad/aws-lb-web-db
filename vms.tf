@@ -15,14 +15,14 @@ resource "aws_key_pair" "sshkey-gen" {
 resource "aws_security_group" "sg-jumphost" {
 	name   = "ssh access"
 	description = "Allow ssh access from any"
-  vpc_id = "${aws_vpc.vpc-main.id}"
+  vpc_id = "${aws_vpc.vpc-lb-web.id}"
 
   ingress {
-		description = "SSH from any"
+		description = "SSH from my range"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["${var.myiprange}"]
   }
 
   egress {
@@ -40,7 +40,7 @@ resource "aws_security_group" "sg-jumphost" {
 resource "aws_security_group" "sg-web" {
 	name = "Web access"
 	description = "Allow HTTP and HTTP access from any"
-  vpc_id = "${aws_vpc.vpc-main.id}"
+  vpc_id = "${aws_vpc.vpc-lb-web.id}"
 
   ingress {
 		description = "SSH from jh"
@@ -81,7 +81,7 @@ resource "aws_security_group" "sg-web" {
 resource "aws_security_group" "sg-elb-web" {
 	name        = "web-lb"
 	description = "Allows http through"
-	vpc_id      = "${aws_vpc.vpc-main.id}"
+	vpc_id      = "${aws_vpc.vpc-lb-web.id}"
 
 	ingress {
 		from_port   = 80
@@ -149,6 +149,18 @@ resource "aws_route53_record" "r53a-jh2" {
 	records = ["${aws_instance.vm-jh2.public_ip}"]
 }
 
+resource "aws_route53_record" "r53a-web" {
+  zone_id = "${data.aws_route53_zone.r53zone.zone_id}"
+  name    = "web"
+  type    = "CNAME"
+
+  alias {
+    name                   = "${aws_elb.web-elb.dns_name}"
+    zone_id                = "${aws_elb.web-elb.zone_id}"
+    evaluate_target_health = false
+  }
+}
+
 /* OUTPUT - IPs */
 output "public_ip-jh1" {
 	value = "${aws_instance.vm-jh1.public_ip}"
@@ -169,7 +181,7 @@ resource "aws_elb" "web-elb" {
 	security_groups = ["${aws_security_group.sg-elb-web.id}"]
 
 	listener {
-		lb_port           = 80
+		lb_port           = "${var.lb_port}"
 		lb_protocol       = "http"
 		instance_port     = "${var.web_server_port}"
 		instance_protocol = "http"
