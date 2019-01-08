@@ -8,17 +8,17 @@ data "aws_route53_zone" "r53zone" {
 # jumphosts
 
 resource "aws_key_pair" "sshkey-gen" {
-	key_name = "${var.sshkey_name}"
+	key_name   = "${var.sshkey_name}"
 	public_key = "${file("${var.sshkey_path}")}"
 }
 
 resource "aws_security_group" "sg-jumphost" {
-	name   = "ssh access"
-	description = "Allow ssh access from any"
-  vpc_id = "${aws_vpc.vpc-lb-web.id}"
+    name   = "ssh access"
+    description = "Allow ssh access from any"
+    vpc_id = "${aws_vpc.vpc-lb-web.id}"
 
   ingress {
-		description = "SSH from my range"
+    description = "SSH from my range"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
@@ -38,12 +38,12 @@ resource "aws_security_group" "sg-jumphost" {
 }
 
 resource "aws_security_group" "sg-web" {
-	name = "Web access"
-	description = "Allow HTTP and HTTP access from any"
+  name = "Web access"
+  description = "Allow HTTP and HTTP access from any"
   vpc_id = "${aws_vpc.vpc-lb-web.id}"
 
   ingress {
-		description = "SSH from jh"
+    description = "SSH from jh"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
@@ -51,20 +51,20 @@ resource "aws_security_group" "sg-web" {
   }
 
   ingress {
-		description = "HTTP from any"
+    description = "HTTP from any"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-	ingress {
-		description = "HTTPS from any"
-		from_port   = 443
-		to_port     = 443
-		protocol    = "tcp"
-		cidr_blocks = ["0.0.0.0/0"]
-	}
+  ingress {
+    description = "HTTPS from any"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
   egress {
     from_port   = 0
@@ -79,23 +79,23 @@ resource "aws_security_group" "sg-web" {
 }
 
 resource "aws_security_group" "sg-elb-web" {
-	name        = "web-lb"
-	description = "Allows http through"
-	vpc_id      = "${aws_vpc.vpc-lb-web.id}"
+  name        = "web-lb"
+  description = "Allows http through"
+  vpc_id      = "${aws_vpc.vpc-lb-web.id}"
 
-	ingress {
-		from_port   = 80
-		to_port     = 80
-		protocol    = "tcp"
-		cidr_blocks = ["0.0.0.0/0"]
-	}
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-	egress {
-		from_port   = 0
-		to_port     = 0
-		protocol    = "-1"
-		cidr_blocks = ["0.0.0.0/0"]
-	}
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
 	tags {
 		Name = "sg-web_elb-http"
@@ -103,46 +103,44 @@ resource "aws_security_group" "sg-elb-web" {
 }
 
 resource "aws_instance" "vm-jh1" {
-	ami						= "${var.ami}"
-	instance_type = "${var.jh-size}"
+  ami               = "${var.ami}"
+  instance_type   = "${var.jh-size}"
 
-	subnet_id			= "${aws_subnet.sn-pub1.id}"
-	security_groups = ["${aws_security_group.sg-jumphost.id}"]
-	key_name = "${var.sshkey_name}"
-	associate_public_ip_address = true
+  subnet_id       = "${aws_subnet.sn-pub1.id}"
+  security_groups = ["${aws_security_group.sg-jumphost.id}"]
+  key_name        = "${var.sshkey_name}"
+  associate_public_ip_address = true
 
-	tags {
-		Name = "jh1"
-	}
+  tags {
+    Name = "jh1"
+  }
 }
 
 resource "aws_instance" "vm-jh2" {
-	ami						= "${var.ami}"
-	instance_type = "${var.jh-size}"
+  ami             = "${var.ami}"
+  instance_type   = "${var.jh-size}"
 
-	subnet_id			= "${aws_subnet.sn-pub2.id}"
-	security_groups = ["${aws_security_group.sg-jumphost.id}"]
+  subnet_id       = "${aws_subnet.sn-pub2.id}"
+  security_groups = ["${aws_security_group.sg-jumphost.id}"]
+  key_name        = "${var.sshkey_name}"
+  associate_public_ip_address = true
 
-	key_name = "${var.sshkey_name}"
-	associate_public_ip_address = true
-
-	tags {
-		Name = "jh2"
-	}
-
+  tags {
+    Name = "jh2"
+  }
 }
 
 /* DNS mangling */
 resource "aws_route53_record" "r53a-jh1" {
-	zone_id = "${data.aws_route53_zone.r53zone.zone_id}"
-  name    = "jh1"
-  type    = "A"
-	ttl     = 300
-	records = ["${aws_instance.vm-jh1.public_ip}"]
+   zone_id = "${data.aws_route53_zone.r53zone.zone_id}"
+   name    = "jh1"
+   type    = "A"
+   ttl     = 300
+   records = ["${aws_instance.vm-jh1.public_ip}"]
 }
 
 resource "aws_route53_record" "r53a-jh2" {
-	zone_id = "${data.aws_route53_zone.r53zone.zone_id}"
+   zone_id = "${data.aws_route53_zone.r53zone.zone_id}"
   name    = "jh2"
   type    = "A"
 	ttl     = 300
