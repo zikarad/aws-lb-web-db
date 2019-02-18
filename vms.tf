@@ -34,6 +34,7 @@ resource "aws_security_group" "sg-jumphost" {
 
   tags {
     Name = "sg-jumphost"
+	creator = "terraform"
   }
 }
 
@@ -75,6 +76,7 @@ resource "aws_security_group" "sg-web" {
 
   tags {
     Name = "sg-web-http"
+	creator = "terraform"
   }
 }
 
@@ -99,6 +101,7 @@ resource "aws_security_group" "sg-elb-web" {
 
 	tags {
 		Name = "sg-web_elb-http"
+	    creator = "terraform"
 	}
 }
 
@@ -118,6 +121,7 @@ resource "aws_spot_instance_request" "vm-jh" {
 
   tags {
     Name = "jh${count.index}"
+	creator = "terraform"
   }
 }
 
@@ -176,12 +180,17 @@ resource "aws_elb" "web-elb" {
 }
 
 resource "aws_launch_configuration" "lc-web" {
-  name          = "web"
+  name_prefix   = "webha-"
   image_id      = "${var.ami}"
   instance_type = "${var.web-size}"
+  spot_price    = "${var.spot-price}"
   security_groups = ["${aws_security_group.sg-web.id}"]
-  associate_public_ip_address = true
+  associate_public_ip_address = false
   key_name = "${var.sshkey_name}"
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_autoscaling_group" "asg-web" {
@@ -196,4 +205,7 @@ resource "aws_autoscaling_group" "asg-web" {
   vpc_zone_identifier  = ["${aws_subnet.sn-pub.*.id}"]
 
   load_balancers		 = ["${aws_elb.web-elb.name}"]
+  lifecycle {
+    create_before_destroy = true
+  }
 }
