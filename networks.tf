@@ -49,6 +49,7 @@ resource "aws_subnet" "sn-pub" {
 
   tags {
     Name  = "public${count.index}"
+    creator = "terraform"
     stage = "poc"
   }
 }
@@ -63,6 +64,7 @@ resource "aws_subnet" "sn-priv" {
 
   tags {
     Name  = "private${count.index}"
+    creator = "terraform"
     stage = "poc"
   }
 }
@@ -73,6 +75,7 @@ resource "aws_internet_gateway" "igw-main" {
 
   tags {
     Name = "igw-main"
+    creator = "terraform"
   }
 }
 
@@ -81,6 +84,7 @@ resource "aws_vpn_gateway" "vpngw-main" {
 
   tags {
     Name = "vpngw-main"
+    creator = "terraform"
   }
 }
 
@@ -97,6 +101,7 @@ resource "aws_nat_gateway" "ngw-priv" {
 
   tags {
     Name = "NATgw${count.index+1}"
+    creator = "terraform"
   }
 }
 
