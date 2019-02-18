@@ -47,7 +47,7 @@ resource "aws_security_group" "sg-web" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["10.0.0.0/16"]
+    cidr_blocks = ["${var.vpc_cidr}"]
   }
 
   ingress {
@@ -102,7 +102,8 @@ resource "aws_security_group" "sg-elb-web" {
 	}
 }
 
-resource "aws_spot_instance_request" "vm-jh1" {
+resource "aws_spot_instance_request" "vm-jh" {
+  count = "${var.az_count}"
 
   spot_price          = "${var.spot-price}"
   wait_for_fulfillment = true
@@ -110,49 +111,25 @@ resource "aws_spot_instance_request" "vm-jh1" {
   ami               = "${var.ami}"
   instance_type   = "${var.jh-size}"
 
-  subnet_id       = "${aws_subnet.sn-pub1.id}"
+  subnet_id       = "${element(aws_subnet.sn-pub.*.id, count.index)}"
   security_groups = ["${aws_security_group.sg-jumphost.id}"]
   key_name        = "${var.sshkey_name}"
   associate_public_ip_address = true
 
   tags {
-    Name = "jh1"
-  }
-}
-
-resource "aws_spot_instance_request" "vm-jh2" {
-
-  spot_price          = "${var.spot-price}"
-  wait_for_fulfillment = true
-
-  ami             = "${var.ami}"
-  instance_type   = "${var.jh-size}"
-
-  subnet_id       = "${aws_subnet.sn-pub2.id}"
-  security_groups = ["${aws_security_group.sg-jumphost.id}"]
-  key_name        = "${var.sshkey_name}"
-  associate_public_ip_address = true
-
-  tags {
-    Name = "jh2"
+    Name = "jh${count.index}"
   }
 }
 
 /* DNS mangling */
-resource "aws_route53_record" "r53a-jh1" {
-  zone_id = "${data.aws_route53_zone.r53zone.zone_id}"
-  name    = "jh1"
-  type    = "A"
-  ttl     = 300
-  records = ["${aws_spot_instance_request.vm-jh1.public_ip}"]
-}
+resource "aws_route53_record" "r53a-jh" {
+  count   = "${var.az_count}"
 
-resource "aws_route53_record" "r53a-jh2" {
   zone_id = "${data.aws_route53_zone.r53zone.zone_id}"
-  name    = "jh2"
+  name    = "jh${count.index}"
   type    = "A"
   ttl     = 300
-  records = ["${aws_spot_instance_request.vm-jh2.public_ip}"]
+  records = ["${element(aws_spot_instance_request.vm-jh.*.public_ip, count.index)}"]
 }
 
 resource "aws_route53_record" "r53a-web" {
@@ -168,59 +145,55 @@ resource "aws_route53_record" "r53a-web" {
 }
 
 /* OUTPUT - IPs */
-output "public_ip-jh1" {
-	value = "${aws_spot_instance_request.vm-jh1.public_ip}"
-}
-
-output "public_ip-jh2" {
-	value = "${aws_spot_instance_request.vm-jh2.public_ip}"
+output "public_ip jumphosts:" {
+  value = "${aws_spot_instance_request.vm-jh.*.public_ip}"
 }
 
 output "dns_name-web_elb" {
-	value = "${aws_elb.web-elb.dns_name}"
+  value = "${aws_elb.web-elb.dns_name}"
 }
 
 # web asg/lb
 resource "aws_elb" "web-elb" {
-	name = "webha"
-	subnets         = ["${aws_subnet.sn-pub1.id}", "${aws_subnet.sn-pub2.id}"]
-	security_groups = ["${aws_security_group.sg-elb-web.id}"]
+  name = "webha"
+  subnets         = ["${aws_subnet.sn-pub.*.id}"]
+  security_groups = ["${aws_security_group.sg-elb-web.id}"]
 
-	listener {
-		lb_port           = "${var.lb_port}"
-		lb_protocol       = "http"
-		instance_port     = "${var.web_server_port}"
-		instance_protocol = "http"
-	}
+  listener {
+    lb_port           = "${var.lb_port}"
+    lb_protocol       = "http"
+    instance_port     = "${var.web_server_port}"
+	instance_protocol = "http"
+  }
 
-	health_check {
-		healthy_threshold   = 2
-		unhealthy_threshold = 2
-		timeout   = 3
-		interval  = 30
-		target = "HTTP:${var.web_server_port}/index.html"
-	}
+  health_check {
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    timeout   = 3
+    interval  = 30
+    target = "HTTP:${var.web_server_port}/index.html"
+  }
 }
 
 resource "aws_launch_configuration" "lc-web" {
   name          = "web"
   image_id      = "${var.ami}"
   instance_type = "${var.web-size}"
-	security_groups = ["${aws_security_group.sg-web.id}"]
-	associate_public_ip_address = true
-	key_name = "${var.sshkey_name}"
+  security_groups = ["${aws_security_group.sg-web.id}"]
+  associate_public_ip_address = true
+  key_name = "${var.sshkey_name}"
 }
 
 resource "aws_autoscaling_group" "asg-web" {
-	name                 = "web-asg"
-	min_size             = 1
-	max_size             = 4
-	health_check_grace_period = 300
-	health_check_type    = "ELB"
-	desired_capacity     = 2
-	force_delete         = true
-	launch_configuration = "${aws_launch_configuration.lc-web.name}"
-	vpc_zone_identifier  = ["${aws_subnet.sn-pub1.id}", "${aws_subnet.sn-pub2.id}"]
+  name                 = "web-asg"
+  min_size             = "${var.web_count_min}"
+  max_size             = "${var.web_count_max}"
+  health_check_grace_period = 300
+  health_check_type    = "ELB"
+  desired_capacity     = 2
+  force_delete         = true
+  launch_configuration = "${aws_launch_configuration.lc-web.name}"
+  vpc_zone_identifier  = ["${aws_subnet.sn-pub.*.id}"]
 
-	load_balancers		 = ["${aws_elb.web-elb.name}"]
+  load_balancers		 = ["${aws_elb.web-elb.name}"]
 }
