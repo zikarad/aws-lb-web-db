@@ -34,6 +34,7 @@ resource "aws_vpc_endpoint_route_table_association" "vpcea-s3-priv" {
 }
 
 resource "aws_vpc_endpoint_route_table_association" "vpcea-dydb-priv" {
+  count = "${var.az_count}"
   vpc_endpoint_id = "${aws_vpc_endpoint.endp-dydb.id}"
   route_table_id  = "${element(aws_route_table.rt-priv.*.id, count.index)}"
 }
