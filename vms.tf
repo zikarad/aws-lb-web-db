@@ -14,7 +14,7 @@ resource "aws_key_pair" "sshkey-gen" {
 
 resource "aws_security_group" "sg-jumphost" {
     name   = "ssh access"
-    description = "Allow ssh access from any"
+    description = "Allow ssh access from myiprange"
     vpc_id = "${aws_vpc.vpc-lb-web.id}"
 
   ingress {
@@ -39,7 +39,7 @@ resource "aws_security_group" "sg-jumphost" {
 
 resource "aws_security_group" "sg-web" {
   name = "Web access"
-  description = "Allow HTTP and HTTP access from any"
+  description = "Allow SSH, HTTP and HTTP access"
   vpc_id = "${aws_vpc.vpc-lb-web.id}"
 
   ingress {
