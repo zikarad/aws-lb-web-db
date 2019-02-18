@@ -23,6 +23,8 @@ variable "lb_port" {
 	default = 80
 }
 
+variable "spot-price"      { default = "0.03" }
+
 variable "sshkey_name" {
 	default = "azure-test1"
 }

@@ -102,7 +102,11 @@ resource "aws_security_group" "sg-elb-web" {
 	}
 }
 
-resource "aws_instance" "vm-jh1" {
+resource "aws_spot_instance_request" "vm-jh1" {
+
+  spot_price          = "${var.spot-price}"
+  wait_for_fulfillment = true
+
   ami               = "${var.ami}"
   instance_type   = "${var.jh-size}"
 
@@ -116,7 +120,11 @@ resource "aws_instance" "vm-jh1" {
   }
 }
 
-resource "aws_instance" "vm-jh2" {
+resource "aws_spot_instance_request" "vm-jh2" {
+
+  spot_price          = "${var.spot-price}"
+  wait_for_fulfillment = true
+
   ami             = "${var.ami}"
   instance_type   = "${var.jh-size}"
 
@@ -132,19 +140,19 @@ resource "aws_instance" "vm-jh2" {
 
 /* DNS mangling */
 resource "aws_route53_record" "r53a-jh1" {
-   zone_id = "${data.aws_route53_zone.r53zone.zone_id}"
-   name    = "jh1"
-   type    = "A"
-   ttl     = 300
-   records = ["${aws_instance.vm-jh1.public_ip}"]
+  zone_id = "${data.aws_route53_zone.r53zone.zone_id}"
+  name    = "jh1"
+  type    = "A"
+  ttl     = 300
+  records = ["${aws_spot_instance_request.vm-jh1.public_ip}"]
 }
 
 resource "aws_route53_record" "r53a-jh2" {
-   zone_id = "${data.aws_route53_zone.r53zone.zone_id}"
+  zone_id = "${data.aws_route53_zone.r53zone.zone_id}"
   name    = "jh2"
   type    = "A"
-	ttl     = 300
-	records = ["${aws_instance.vm-jh2.public_ip}"]
+  ttl     = 300
+  records = ["${aws_spot_instance_request.vm-jh2.public_ip}"]
 }
 
 resource "aws_route53_record" "r53a-web" {
@@ -161,11 +169,11 @@ resource "aws_route53_record" "r53a-web" {
 
 /* OUTPUT - IPs */
 output "public_ip-jh1" {
-	value = "${aws_instance.vm-jh1.public_ip}"
+	value = "${aws_spot_instance_request.vm-jh1.public_ip}"
 }
 
 output "public_ip-jh2" {
-	value = "${aws_instance.vm-jh2.public_ip}"
+	value = "${aws_spot_instance_request.vm-jh2.public_ip}"
 }
 
 output "dns_name-web_elb" {
