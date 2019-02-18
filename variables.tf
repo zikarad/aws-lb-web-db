@@ -46,7 +46,7 @@ variable "lb_port" {
 	default = 80
 }
 
-variable "spot-price"      { default = "0.03" }
+variable "spot-price"      { default = "0.02" }
 
 variable "sshkey_name" {
 	default = "azure-test1"
@@ -57,3 +57,7 @@ variable "aws_access_key" {}
 variable "aws_secret_key" {}
 variable "route53zone" {}
 variable "myiprange" {}
+variable "db_username" {}
+variable "db_password" {}
+variable "db_dbname" {}
+variable "db_port" { default = "5432" }
