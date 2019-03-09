@@ -1,6 +1,5 @@
 resource "aws_security_group" "sg-dbaccess" {
   name        = "rds-access"
-  group_description = "access to DB port"
   description = "access to DB port"
   vpc_id      = "${aws_vpc.vpc-lb-web.id}"
 
