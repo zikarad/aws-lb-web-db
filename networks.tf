@@ -1,6 +1,6 @@
 /* --- VPCs */
 resource "aws_vpc" "vpc-lb-web" {
-  cidr_block = "10.0.0.0/16"
+  cidr_block = "${var.vpc_cidr}"
   enable_dns_hostnames = true
   enable_dns_support   = true
 
@@ -22,81 +22,50 @@ resource "aws_vpc_endpoint" "endp-dydb" {
   service_name = "com.amazonaws.${var.region}.dynamodb"
 }
 
-resource "aws_vpc_endpoint_route_table_association" "vpcea-s3-pub1" {
+resource "aws_vpc_endpoint_route_table_association" "vpcea-s3-pub" {
   vpc_endpoint_id = "${aws_vpc_endpoint.endp-s3.id}"
   route_table_id  = "${aws_route_table.rt-pub.id}"
 }
 
-resource "aws_vpc_endpoint_route_table_association" "vpcea-s3-pub2" {
+resource "aws_vpc_endpoint_route_table_association" "vpcea-s3-priv" {
+  count = "${var.az_count}"
   vpc_endpoint_id = "${aws_vpc_endpoint.endp-s3.id}"
-  route_table_id  = "${aws_route_table.rt-pub.id}"
+  route_table_id  = "${element(aws_route_table.rt-priv.*.id, count.index)}"
 }
 
-resource "aws_vpc_endpoint_route_table_association" "vpcea-s3-priv1" {
-  vpc_endpoint_id = "${aws_vpc_endpoint.endp-s3.id}"
-  route_table_id  = "${aws_route_table.rt-priv1.id}"
-}
-
-resource "aws_vpc_endpoint_route_table_association" "vpcea-s3-priv2" {
-  vpc_endpoint_id = "${aws_vpc_endpoint.endp-s3.id}"
-  route_table_id  = "${aws_route_table.rt-priv2.id}"
-}
-
-resource "aws_vpc_endpoint_route_table_association" "vpcea-dydb-priv1" {
+resource "aws_vpc_endpoint_route_table_association" "vpcea-dydb-priv" {
+  count = "${var.az_count}"
   vpc_endpoint_id = "${aws_vpc_endpoint.endp-dydb.id}"
-  route_table_id  = "${aws_route_table.rt-priv1.id}"
-}
-
-resource "aws_vpc_endpoint_route_table_association" "vpcea-dydb-priv2" {
-  vpc_endpoint_id = "${aws_vpc_endpoint.endp-dydb.id}"
-  route_table_id  = "${aws_route_table.rt-priv2.id}"
+  route_table_id  = "${element(aws_route_table.rt-priv.*.id, count.index)}"
 }
 
 /* NETWORKS */
-resource "aws_subnet" "sn-pub1" {
+resource "aws_subnet" "sn-pub" {
+  count = "${var.az_count}"
+
   vpc_id = "${aws_vpc.vpc-lb-web.id}"
 
-  cidr_block        = "10.0.1.0/24"
-  availability_zone = "eu-central-1a"
+  cidr_block        = "${var.pub_nets[count.index]}"
+  availability_zone = "${var.az_names[count.index]}"
 
   tags {
-    Name  = "public1"
+    Name  = "public${count.index}"
+    creator = "terraform"
     stage = "poc"
   }
 }
 
-resource "aws_subnet" "sn-pub2" {
+resource "aws_subnet" "sn-priv" {
+  count = "${var.az_count}"
+
   vpc_id = "${aws_vpc.vpc-lb-web.id}"
 
-  cidr_block        = "10.0.2.0/24"
-  availability_zone = "eu-central-1b"
+  cidr_block        = "${var.priv_nets[count.index]}"
+  availability_zone = "${var.az_names[count.index]}"
 
   tags {
-    Name  = "public2"
-    stage = "poc"
-  }
-}
-
-resource "aws_subnet" "sn-priv1" {
-  vpc_id = "${aws_vpc.vpc-lb-web.id}"
-
-  cidr_block        = "10.0.129.0/24"
-  availability_zone = "eu-central-1a"
-
-  tags {
-    Name  = "private1"
-    stage = "poc"
-  }
-}
-
-resource "aws_subnet" "sn-priv2" {
-  vpc_id = "${aws_vpc.vpc-lb-web.id}"
-
-  cidr_block        = "10.0.130.0/24"
-  availability_zone = "eu-central-1b"
-
-  tags {
-    Name  = "private2"
+    Name  = "private${count.index}"
+    creator = "terraform"
     stage = "poc"
   }
 }
@@ -107,6 +76,7 @@ resource "aws_internet_gateway" "igw-main" {
 
   tags {
     Name = "igw-main"
+    creator = "terraform"
   }
 }
 
@@ -115,34 +85,24 @@ resource "aws_vpn_gateway" "vpngw-main" {
 
   tags {
     Name = "vpngw-main"
+    creator = "terraform"
   }
 }
 
-resource "aws_eip" "eip-ngw1" {
+resource "aws_eip" "eip-ngw" {
+  count = "${var.az_count}"
   vpc = true
   depends_on = ["aws_internet_gateway.igw-main"]
 }
 
-resource "aws_eip" "eip-ngw2" {
-  vpc = true
-  depends_on = ["aws_internet_gateway.igw-main"]
-}
-
-resource "aws_nat_gateway" "ngw-priv1" {
-  allocation_id = "${aws_eip.eip-ngw1.id}"
-  subnet_id     = "${aws_subnet.sn-priv1.id}"
+resource "aws_nat_gateway" "ngw-priv" {
+  count = "${var.az_count}"
+  allocation_id = "${element(aws_eip.eip-ngw.*.id, count.index)}"
+  subnet_id     = "${element(aws_subnet.sn-priv.*.id, count.index)}"
 
   tags {
-    Name = "NATgw1"
-  }
-}
-
-resource "aws_nat_gateway" "ngw-priv2" {
-  allocation_id = "${aws_eip.eip-ngw2.id}"
-  subnet_id     = "${aws_subnet.sn-priv2.id}"
-
-  tags {
-    Name = "NATgw2"
+    Name = "NATgw${count.index+1}"
+    creator = "terraform"
   }
 }
 
@@ -156,41 +116,25 @@ resource "aws_route_table" "rt-pub" {
   }
 }
 
-resource "aws_route_table" "rt-priv1" {
+resource "aws_route_table" "rt-priv" {
+  count  = "${var.az_count}" 
   vpc_id = "${aws_vpc.vpc-lb-web.id}"
 
   route {
     cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = "${aws_nat_gateway.ngw-priv1.id}"
-  }
-}
-
-resource "aws_route_table" "rt-priv2" {
-  vpc_id = "${aws_vpc.vpc-lb-web.id}"
-
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = "${aws_nat_gateway.ngw-priv2.id}"
+    nat_gateway_id = "${element(aws_nat_gateway.ngw-priv.*.id, count.index)}"
   }
 }
 
 /* ROUTE TABLE ASSOCIATION */
-resource "aws_route_table_association" "rta-pub1" {
-  subnet_id      = "${aws_subnet.sn-pub1.id}"
+resource "aws_route_table_association" "rta-pub" {
+  count  = "${var.az_count}" 
+  subnet_id      = "${element(aws_subnet.sn-pub.*.id, count.index)}"
   route_table_id = "${aws_route_table.rt-pub.id}"
 }
 
-resource "aws_route_table_association" "rta-pub2" {
-  subnet_id      = "${aws_subnet.sn-pub2.id}"
-  route_table_id = "${aws_route_table.rt-pub.id}"
-}
-
-resource "aws_route_table_association" "rta-priv1" {
-  subnet_id      = "${aws_subnet.sn-priv1.id}"
-  route_table_id = "${aws_route_table.rt-priv1.id}"
-}
-
-resource "aws_route_table_association" "rta-priv2" {
-  subnet_id      = "${aws_subnet.sn-priv2.id}"
-  route_table_id = "${aws_route_table.rt-priv2.id}"
+resource "aws_route_table_association" "rta-priv" {
+  count  = "${var.az_count}" 
+  subnet_id      = "${element(aws_subnet.sn-priv.*.id, count.index)}"
+  route_table_id = "${element(aws_route_table.rt-priv.*.id, count.index)}"
 }
