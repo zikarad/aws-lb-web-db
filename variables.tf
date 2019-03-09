@@ -7,9 +7,7 @@ variable "region" {
 	default = "eu-central-1"
 }
 
-variable "vpc_cidr" {
-	default = "10.1.0.0/16"
-}
+variable "vpc_cidr" { default = "10.1.0.0/16" }
 
 variable "az_names" {
     type = "list"
