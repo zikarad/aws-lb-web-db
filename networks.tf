@@ -5,8 +5,8 @@ resource "aws_vpc" "vpc-lb-web" {
   enable_dns_support   = true
 
   tags {
-    Name  = "lb-web"
-    stage = "poc"
+    Name  = "${var.project}"
+    stage = "${var.stage}"
     creator = "terraform"
   }
 }
@@ -41,32 +41,32 @@ resource "aws_vpc_endpoint_route_table_association" "vpcea-dydb-priv" {
 
 /* NETWORKS */
 resource "aws_subnet" "sn-pub" {
-  count = "${var.az_count}"
-
+  count  = "${var.az_count}"
   vpc_id = "${aws_vpc.vpc-lb-web.id}"
 
   cidr_block        = "${var.pub_nets[count.index]}"
   availability_zone = "${var.az_names[count.index]}"
 
   tags {
-    Name  = "public${count.index}"
+    Name    = "public${count.index}"
+    project = "${var.project}"
     creator = "terraform"
-    stage = "poc"
+    stage   = "${var.stage}"
   }
 }
 
 resource "aws_subnet" "sn-priv" {
-  count = "${var.az_count}"
-
+  count  = "${var.az_count}"
   vpc_id = "${aws_vpc.vpc-lb-web.id}"
 
   cidr_block        = "${var.priv_nets[count.index]}"
   availability_zone = "${var.az_names[count.index]}"
 
   tags {
-    Name  = "private${count.index}"
+    Name    = "private${count.index}"
+    project = "${var.project}"
     creator = "terraform"
-    stage = "poc"
+    stage   = "${var.stage}"
   }
 }
 
@@ -76,7 +76,9 @@ resource "aws_internet_gateway" "igw-main" {
 
   tags {
     Name    = "igw-main"
+    project = "${var.project}"
     creator = "terraform"
+    stage   = "${var.stage}"
   }
 }
 
@@ -85,7 +87,9 @@ resource "aws_vpn_gateway" "vpngw-main" {
 
   tags {
     Name    = "vpngw-main"
+    project = "${var.project}"
     creator = "terraform"
+    stage   = "${var.stage}"
   }
 }
 
@@ -101,8 +105,10 @@ resource "aws_nat_gateway" "ngw-priv" {
   subnet_id     = "${element(aws_subnet.sn-priv.*.id, count.index)}"
 
   tags {
-    Name = "NATgw${count.index+1}"
+    Name    = "NATgw${count.index+1}"
+    project = "${var.project}"
     creator = "terraform"
+    stage   = "${var.stage}"
   }
 }
 
@@ -118,6 +124,7 @@ resource "aws_route_table" "rt-pub" {
   tags {
     Name    = "rt-pub"
     project = "${var.project}"
+    creator = "terraform"
     stage   = "${var.stage}"
   }
 }
@@ -134,9 +141,9 @@ resource "aws_route_table" "rt-priv" {
   tags {
     Name    = "rt-priv${count.index}"
     project = "${var.project}"
+    creator = "terraform"
     stage   = "${var.stage}"
   }
-
 }
 
 /* ROUTE TABLE ASSOCIATION */
