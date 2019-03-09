@@ -3,9 +3,10 @@ variable "ami" {
 default = "ami-0fe525d17aa2b4240"
 }
 
-variable "region" {
-	default = "eu-central-1"
-}
+variable "project" { default = "lb-web" }
+variable "stage"   { default = "poc"}
+
+variable "region" {	default = "eu-central-1" }
 
 variable "vpc_cidr" { default = "10.1.0.0/16" }
 
@@ -16,39 +17,25 @@ variable "az_names" {
 
 variable "pub_nets" {
 	type = "list"
-    default = ["10.1.0.0/24", "10.1.1.0/24", "10.1.2.0/24"]	
+  default = ["10.1.0.0/24", "10.1.1.0/24", "10.1.2.0/24"]
 }
 
 variable "priv_nets" {
 	type = "list"
-    default = ["10.1.128.0/24", "10.1.129.0/24", "10.1.130.0/24"]	
+  default = ["10.1.128.0/24", "10.1.129.0/24", "10.1.130.0/24"]
 }
 
-variable "az_count"  { default = 2 }
+variable "az_count"      { default = 2 }
 variable "web_count_min" { default = 2 }
 variable "web_count_max" { default = 6 }
 
-variable "jh-size" {
-	default = "t3.micro"
-}
+variable "jh-size"  { default = "t3.micro" }
+variable "web-size" {	default = "t3.micro" }
 
-variable "web-size" {
-	default = "t3.micro"
-}
-
-variable "web_server_port" {
-	default = 80
-}
-
-variable "lb_port" {
-	default = 80
-}
-
-variable "spot-price"      { default = "0.02" }
-
-variable "sshkey_name" {
-	default = "azure-test1"
-}
+variable "web_server_port" { default = 80 }
+variable "lb_port"     { default = 80 }
+variable "spot-price"  { default = "0.02" }
+variable "sshkey_name" { default = "azure-test1" }
 
 variable "sshkey_path" {}
 variable "aws_access_key" {}

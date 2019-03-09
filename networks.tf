@@ -75,7 +75,7 @@ resource "aws_internet_gateway" "igw-main" {
   vpc_id = "${aws_vpc.vpc-lb-web.id}"
 
   tags {
-    Name = "igw-main"
+    Name    = "igw-main"
     creator = "terraform"
   }
 }
@@ -84,7 +84,7 @@ resource "aws_vpn_gateway" "vpngw-main" {
   vpc_id = "${aws_vpc.vpc-lb-web.id}"
 
   tags {
-    Name = "vpngw-main"
+    Name    = "vpngw-main"
     creator = "terraform"
   }
 }
@@ -114,27 +114,40 @@ resource "aws_route_table" "rt-pub" {
     cidr_block = "0.0.0.0/0"
     gateway_id = "${aws_internet_gateway.igw-main.id}"
   }
+
+  tags {
+    Name    = "rt-pub"
+    project = "${var.project}"
+    stage   = "${var.stage}"
+  }
 }
 
 resource "aws_route_table" "rt-priv" {
-  count  = "${var.az_count}" 
+  count  = "${var.az_count}"
   vpc_id = "${aws_vpc.vpc-lb-web.id}"
 
   route {
     cidr_block     = "0.0.0.0/0"
     nat_gateway_id = "${element(aws_nat_gateway.ngw-priv.*.id, count.index)}"
   }
+
+  tags {
+    Name    = "rt-priv${count.index}"
+    project = "${var.project}"
+    stage   = "${var.stage}"
+  }
+
 }
 
 /* ROUTE TABLE ASSOCIATION */
 resource "aws_route_table_association" "rta-pub" {
-  count  = "${var.az_count}" 
+  count  = "${var.az_count}"
   subnet_id      = "${element(aws_subnet.sn-pub.*.id, count.index)}"
   route_table_id = "${aws_route_table.rt-pub.id}"
 }
 
 resource "aws_route_table_association" "rta-priv" {
-  count  = "${var.az_count}" 
+  count  = "${var.az_count}"
   subnet_id      = "${element(aws_subnet.sn-priv.*.id, count.index)}"
   route_table_id = "${element(aws_route_table.rt-priv.*.id, count.index)}"
 }

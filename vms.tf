@@ -76,7 +76,7 @@ resource "aws_security_group" "sg-web" {
 
   tags {
     Name = "sg-web-http"
-	creator = "terraform"
+	  creator = "terraform"
   }
 }
 
@@ -101,7 +101,7 @@ resource "aws_security_group" "sg-elb-web" {
 
 	tags {
 		Name = "sg-web_elb-http"
-	    creator = "terraform"
+	  creator = "terraform"
 	}
 }
 
@@ -121,7 +121,7 @@ resource "aws_spot_instance_request" "vm-jh" {
 
   tags {
     Name = "jh${count.index}"
-	creator = "terraform"
+	  creator = "terraform"
   }
 }
 
