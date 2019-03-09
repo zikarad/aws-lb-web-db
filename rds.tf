@@ -7,7 +7,7 @@ resource "aws_security_group" "sg-dbaccess" {
     description = "local acces to DB"
     from_port   = "${var.db_port}"
     to_port     = "${var.db_port}"
-    protocol    = "-1"
+    protocol    = "tcp"
     cidr_blocks = ["${var.priv_nets}"]
   }
 
