@@ -102,7 +102,7 @@ resource "aws_eip" "eip-ngw" {
 resource "aws_nat_gateway" "ngw-priv" {
   count = "${var.az_count}"
   allocation_id = "${element(aws_eip.eip-ngw.*.id, count.index)}"
-  subnet_id     = "${element(aws_subnet.sn-priv.*.id, count.index)}"
+  subnet_id     = "${element(aws_subnet.sn-pub.*.id, count.index)}"
 
   tags {
     Name    = "NATgw${count.index+1}"
