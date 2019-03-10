@@ -20,8 +20,10 @@ resource "aws_security_group" "sg-dbaccess" {
   }
 
   tags = {
-    Name = "DB access (${var.db_port})"
+    Name    = "DB access (${var.db_port})"
+    project = "${var.project}"
     creator = "Terraform"
+    stage   = "${var.stage}"
   }
 }
 
@@ -31,24 +33,25 @@ resource "aws_db_subnet_group" "priv_nets" {
   subnet_ids  = ["${aws_subnet.sn-priv.*.id}"]
 
   tags = {
-    Name    = "DB subnet"
+    Name    = "DB priv sn"
+    project = "${var.project}"
     creator = "Terraform"
+    stage   = "${var.stage}"
   }
 }
 
-
 resource "aws_db_instance" "masterdb" {
-  allocated_storage    = 10
-  storage_type         = "gp2"
-  db_subnet_group_name = "${aws_db_subnet_group.priv_nets.name}"
+  allocated_storage      = 10
+  storage_type           = "gp2"
+  db_subnet_group_name   = "${aws_db_subnet_group.priv_nets.name}"
   vpc_security_group_ids = ["${aws_security_group.sg-dbaccess.id}"]
-  skip_final_snapshot  = true
+  skip_final_snapshot    = true
 
-  engine            = "postgres"
-  engine_version    = "10.6"
-  instance_class    = "db.t3.micro"
-  name              = "${var.db_dbname}"
+  engine         = "postgres"
+  engine_version = "10.6"
+  instance_class = "db.t3.micro"
+  name           = "${var.db_dbname}"
 
-  username          = "${var.db_username}"
-  password          = "${var.db_password}"
+  username = "${var.db_username}"
+  password = "${var.db_password}"
 }

@@ -6,7 +6,6 @@ data "aws_route53_zone" "r53zone" {
 
 /* VIRTUAL MACHINEs */
 # jumphosts
-
 resource "aws_key_pair" "sshkey-gen" {
 	key_name   = "${var.sshkey_name}"
 	public_key = "${file("${var.sshkey_path}")}"
@@ -33,8 +32,10 @@ resource "aws_security_group" "sg-jumphost" {
   }
 
   tags {
-    Name = "sg-jumphost"
-	creator = "terraform"
+    Name    = "sg-jumphost"
+    project = "${var.project}"
+	  creator = "terraform"
+    stage   = "${var.stage}"
   }
 }
 
@@ -75,8 +76,10 @@ resource "aws_security_group" "sg-web" {
   }
 
   tags {
-    Name = "sg-web-http"
+    Name    = "sg-web-http"
+    project = "${var.project}"
 	  creator = "terraform"
+    stage   = "${var.stage}"
   }
 }
 
@@ -100,18 +103,20 @@ resource "aws_security_group" "sg-elb-web" {
   }
 
 	tags {
-		Name = "sg-web_elb-http"
+		Name    = "sg-web_elb-http"
+    project = "${var.project}"
 	  creator = "terraform"
+    stage   = "${var.stage}"
 	}
 }
 
 resource "aws_spot_instance_request" "vm-jh" {
   count = "${var.az_count}"
 
-  spot_price          = "${var.spot-price}"
+  spot_price           = "${var.spot-price}"
   wait_for_fulfillment = true
 
-  ami               = "${var.ami}"
+  ami             = "${var.ami}"
   instance_type   = "${var.jh-size}"
 
   subnet_id       = "${element(aws_subnet.sn-pub.*.id, count.index)}"
@@ -120,8 +125,10 @@ resource "aws_spot_instance_request" "vm-jh" {
   associate_public_ip_address = true
 
   tags {
-    Name = "jh${count.index}"
+    Name    = "jh${count.index}"
+    project = "${var.project}"
 	  creator = "terraform"
+    stage   = "${var.stage}"
   }
 }
 
@@ -153,7 +160,7 @@ output "public_ip jumphosts:" {
   value = "${aws_spot_instance_request.vm-jh.*.public_ip}"
 }
 
-output "dns_name-web_elb" {
+output "dns_name-web_elb:" {
   value = "${aws_elb.web-elb.dns_name}"
 }
 
@@ -167,7 +174,7 @@ resource "aws_elb" "web-elb" {
     lb_port           = "${var.lb_port}"
     lb_protocol       = "http"
     instance_port     = "${var.web_server_port}"
-	instance_protocol = "http"
+	  instance_protocol = "http"
   }
 
   health_check {
