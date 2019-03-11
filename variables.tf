@@ -3,10 +3,10 @@ variable "ami" {
 default = "ami-0fe525d17aa2b4240"
 }
 
-variable "project" { default = "lb-web" }
-variable "stage"   { default = "poc"}
+variable "project"  { default = "lb-web" }
+variable "stage"    { default = "poc"    }
 
-variable "region" {	default = "eu-central-1" }
+variable "region"   {	default = "eu-central-1" }
 
 variable "vpc_cidr" { default = "10.1.0.0/16" }
 
@@ -31,11 +31,15 @@ variable "web_count_max" { default = 6 }
 
 variable "jh-size"  { default = "t3.micro" }
 variable "web-size" {	default = "t3.micro" }
+variable "db-size"  { default = "db.t3.micro" }
 
 variable "web_server_port" { default = 80 }
 variable "lb_port"     { default = 80 }
 variable "spot-price"  { default = "0.02" }
 variable "sshkey_name" { default = "azure-test1" }
+
+variable "dbstorage_type" { default = "gp2" }
+variable "dbstorage_size" { default = "10"  }
 
 variable "sshkey_path" {}
 variable "aws_access_key" {}

@@ -41,17 +41,21 @@ resource "aws_db_subnet_group" "priv_nets" {
 }
 
 resource "aws_db_instance" "masterdb" {
-  allocated_storage      = 10
-  storage_type           = "gp2"
+  allocated_storage      = "${var.dbstorage_size}"
+  storage_type           = "${var.dbstorage_type}"
   db_subnet_group_name   = "${aws_db_subnet_group.priv_nets.name}"
   vpc_security_group_ids = ["${aws_security_group.sg-dbaccess.id}"]
   skip_final_snapshot    = true
 
   engine         = "postgres"
   engine_version = "10.6"
-  instance_class = "db.t3.micro"
+  instance_class = "${var.db-size}"
   name           = "${var.db_dbname}"
 
   username = "${var.db_username}"
   password = "${var.db_password}"
+}
+
+output "RDS hostname/endpoint" {
+  value = "${aws_db_instance.masterdb.address}"
 }
