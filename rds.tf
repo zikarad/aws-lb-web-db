@@ -41,6 +41,7 @@ resource "aws_db_subnet_group" "priv_nets" {
 }
 
 resource "aws_db_instance" "masterdb" {
+  identifier_prefix      = "${var.project}-"
   allocated_storage      = "${var.dbstorage_size}"
   storage_type           = "${var.dbstorage_type}"
   db_subnet_group_name   = "${aws_db_subnet_group.priv_nets.name}"
@@ -54,6 +55,13 @@ resource "aws_db_instance" "masterdb" {
 
   username = "${var.db_username}"
   password = "${var.db_password}"
+
+  tags {
+    Name     = "masterdb"
+    project  = "${var.project}"
+    creator  = "terraform"
+    stage    = "${var.stage}"
+  }
 }
 
 output "RDS hostname/endpoint" {
