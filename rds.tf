@@ -48,11 +48,12 @@ resource "aws_db_instance" "masterdb" {
   vpc_security_group_ids = ["${aws_security_group.sg-dbaccess.id}"]
   skip_final_snapshot    = true
 
+  instance_class = "${var.db-size}"
   engine         = "postgres"
   engine_version = "10.6"
-  instance_class = "${var.db-size}"
+  auto_minor_version_upgrade = true
+  
   name           = "${var.db_dbname}"
-
   username = "${var.db_username}"
   password = "${var.db_password}"
 
