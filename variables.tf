@@ -26,8 +26,11 @@ variable "priv_nets" {
 }
 
 variable "az_count"      { default = 2 }
-variable "web_count_min" { default = 2 }
+variable "web_count_min" { default = 0 }
 variable "web_count_max" { default = 6 }
+
+variable "web_b-desired" { default = 0 }
+variable "web_g-desired" { default = 2 } 
 
 variable "jh-size"  { default = "t3.micro" }
 variable "web-size" {	default = "t3.micro" }

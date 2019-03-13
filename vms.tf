@@ -5,7 +5,7 @@ data "aws_route53_zone" "r53zone" {
 }
 
 /* VIRTUAL MACHINEs */
-# jumphosts
+# jumphosts / bastion hosts
 resource "aws_key_pair" "sshkey-gen" {
 	key_name   = "${var.sshkey_name}"
 	public_key = "${file("${var.sshkey_path}")}"
@@ -13,7 +13,7 @@ resource "aws_key_pair" "sshkey-gen" {
 
 resource "aws_security_group" "sg-jumphost" {
     name   = "ssh access"
-    description = "Allow ssh access from myiprange"
+    description = "Allow ssh from myiprange"
     vpc_id = "${aws_vpc.vpc-lb-web.id}"
 
   ingress {
@@ -146,7 +146,7 @@ resource "aws_route53_record" "r53a-jh" {
 resource "aws_route53_record" "r53a-web" {
   zone_id = "${data.aws_route53_zone.r53zone.zone_id}"
   name    = "web"
-  type    = "CNAME"
+  type    = "A"
 
   alias {
     name                   = "${aws_elb.web-elb.dns_name}"
@@ -186,7 +186,8 @@ resource "aws_elb" "web-elb" {
   }
 }
 
-resource "aws_launch_configuration" "lc-web" {
+# Green LC
+resource "aws_launch_configuration" "lc-web_g" {
   name_prefix   = "webha-"
   image_id      = "${var.ami}"
   instance_type = "${var.web-size}"
@@ -200,15 +201,49 @@ resource "aws_launch_configuration" "lc-web" {
   }
 }
 
-resource "aws_autoscaling_group" "asg-web" {
-  name                 = "web-asg"
+# Blue LC
+resource "aws_launch_configuration" "lc-web_b" {
+  name_prefix   = "webha-"
+  image_id      = "${var.ami}"
+  instance_type = "${var.web-size}"
+  spot_price    = "${var.spot-price}"
+  security_groups = ["${aws_security_group.sg-web.id}"]
+  associate_public_ip_address = false
+  key_name = "${var.sshkey_name}"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# Green ASG
+resource "aws_autoscaling_group" "asg-web_g" {
+  name                 = "asg-web_green"
   min_size             = "${var.web_count_min}"
   max_size             = "${var.web_count_max}"
   health_check_grace_period = 300
   health_check_type    = "ELB"
-  desired_capacity     = 2
+  desired_capacity     = "${var.web_g-desired}"
   force_delete         = true
-  launch_configuration = "${aws_launch_configuration.lc-web.name}"
+  launch_configuration = "${aws_launch_configuration.lc-web_g.name}"
+  vpc_zone_identifier  = ["${aws_subnet.sn-pub.*.id}"]
+
+  load_balancers		 = ["${aws_elb.web-elb.name}"]
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# Blue ASG
+resource "aws_autoscaling_group" "asg-web_b" {
+  name                 = "asg-web_blue"
+  min_size             = "${var.web_count_min}"
+  max_size             = "${var.web_count_max}"
+  health_check_grace_period = 300
+  health_check_type    = "ELB"
+  desired_capacity     = "${var.web_b-desired}"
+  force_delete         = true
+  launch_configuration = "${aws_launch_configuration.lc-web_b.name}"
   vpc_zone_identifier  = ["${aws_subnet.sn-pub.*.id}"]
 
   load_balancers		 = ["${aws_elb.web-elb.name}"]
