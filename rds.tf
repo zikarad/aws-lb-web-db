@@ -52,8 +52,9 @@ resource "aws_db_instance" "masterdb" {
   engine         = "postgres"
   engine_version = "10.6"
   auto_minor_version_upgrade = true
+  multi_az       = "${var.db_multi_az}"
   
-  name           = "${var.db_dbname}"
+  name     = "${var.db_dbname}"
   username = "${var.db_username}"
   password = "${var.db_password}"
 

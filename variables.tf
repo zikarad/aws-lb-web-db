@@ -37,12 +37,14 @@ variable "web-size" {	default = "t3.micro" }
 variable "db-size"  { default = "db.t3.micro" }
 
 variable "web_server_port" { default = 80 }
-variable "lb_port"     { default = 80 }
-variable "spot-price"  { default = "0.02" }
-variable "sshkey_name" { default = "azure-test1" }
+variable "lb_port"        { default = 80 }
+variable "spot-price"     { default = "0.02" }
+variable "sshkey_name"    { default = "azure-test1" }
 
 variable "dbstorage_type" { default = "gp2" }
 variable "dbstorage_size" { default = "10"  }
+variable "db_multi_az"    { default = false }
+variable "db_encrypt"     { default = true  }
 
 variable "sshkey_path" {}
 variable "aws_access_key" {}
